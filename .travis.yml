@@ -1,0 +1,10 @@
+language: scala
+
+jdk:
+  - oraclejdk8
+
+script:
+  - pushd input
+  - sbt compile
+  - popd
+  - sbt test:compile
