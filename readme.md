@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/lampepfl/dotty-semanticdb.svg?branch=master)](https://travis-ci.org/lampepfl/dotty-semanticdb)
+
 # SemanticDB
 
 To run the tests use two terminals. In the first terminal compile the
