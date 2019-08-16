@@ -13,7 +13,7 @@ lazy val root = project
     scalacOptions in Test ++= Seq("-Yno-inline"),
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % "test",
-      ("org.scalameta" %% "semanticdb" % "4.0.0").withDottyCompat(scalaVersion.value),
+      "org.scalameta" %% "semanticdb-scalac-core" % "4.2.1" cross CrossVersion.constant("2.13.0"),
       "com.novocode" % "junit-interface" % "0.11",
       "com.googlecode.java-diff-utils" % "diffutils" % "1.3.0"
     )
