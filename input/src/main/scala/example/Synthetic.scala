@@ -12,7 +12,7 @@ class Synthetic {
   1 #:: 2 #:: Stream.empty
 
   val lst = 1 #:: 2 #:: Stream.empty
-  lst + "foo"
+  lst.toString + "foo"
 
   for (x <- 1 to 10; y <- 0 until 10) println(x -> x)
   for (i <- 1 to 10; j <- 0 until 10) yield (i, j)
