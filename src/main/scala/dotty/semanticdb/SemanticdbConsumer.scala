@@ -744,7 +744,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
 
       override def traverseTree(tree: Tree) given (ctx: Context): Unit = {
         tree match {
-          case Import(_, path, selectors) =>
+          case Import(path, selectors) =>
             val key = (tree.symbol.trueName, tree.pos.start)
             if (!packageDefinitions(key)) {
               packageDefinitions += key
