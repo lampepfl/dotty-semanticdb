@@ -16,7 +16,7 @@ class TastyScalaFileInferrer extends TastyConsumer {
   final def apply(reflect: Reflection)(root: reflect.Tree): Unit = {
     import reflect._
     object ChildTraverser extends TreeTraverser {
-      override def traverseTree(tree: Tree) given (ctx: Context): Unit =
+      override def traverseTree(tree: Tree)(given ctx: Context): Unit =
         tree match {
           case IsClassDef(cdef) => {
             cdef.symbol.annots.foreach { annot =>
@@ -42,6 +42,6 @@ class TastyScalaFileInferrer extends TastyConsumer {
           }
         }
     }
-    ChildTraverser.traverseTree(root) given reflect.rootContext
+    ChildTraverser.traverseTree(root)(given reflect.rootContext)
   }
 }

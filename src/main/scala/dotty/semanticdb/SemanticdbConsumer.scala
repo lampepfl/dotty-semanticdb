@@ -41,7 +41,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
     object ChildTraverser extends TreeTraverser {
       var children: List[Tree] = Nil
       var childrenType: List[Tree /*TypeTree | TypeBoundsTree*/] = Nil
-      override def traverseTree(tree: Tree) given (ctx: Context): Unit = tree match {
+      override def traverseTree(tree: Tree)(given ctx: Context): Unit = tree match {
         case IsTypeTree(tree) =>
           traverseTypeTree(tree)
         case IsTypeBoundsTree(tree) =>
@@ -54,12 +54,12 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           implicit ctx: Context): Unit =
           childrenType = tree :: childrenType
 
-      def getChildren(tree: Tree) given (ctx: Context): List[Tree] = {
+      def getChildren(tree: Tree)(given ctx: Context): List[Tree] = {
         children = Nil
         traverseTreeChildren(tree)
         return children
       }
-      def getChildrenType(tree: Tree /*TypeTree | TypeBoundsTree*/) given (ctx: Context): List[Tree /*TypeTree | TypeBoundsTree*/] = {
+      def getChildrenType(tree: Tree /*TypeTree | TypeBoundsTree*/)(given ctx: Context): List[Tree /*TypeTree | TypeBoundsTree*/] = {
         childrenType = Nil
         traverseTreeChildren(tree)
         return childrenType
@@ -78,7 +78,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       implicit class TreeExtender(tree: Tree) {
         def isUserCreated: Boolean = {
           val children: List[Position] =
-            (ChildTraverser.getChildren(tree) given reflect.rootContext).map(_.pos)
+            ChildTraverser.getChildren(tree)(given reflect.rootContext).map(_.pos)
           return !((tree.pos.exists && tree.pos.start == tree.pos.end && children == Nil) ||
             children.exists(arePositionEqual(tree.pos, _)))
         }
@@ -87,7 +87,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       implicit class TypeTreeExtender(tree: TypeTree) {
         def isUserCreated: Boolean = {
           val children: List[Position] =
-            (ChildTraverser.getChildrenType(tree) given reflect.rootContext).collect(_ match {
+            ChildTraverser.getChildrenType(tree)(given reflect.rootContext).collect(_ match {
             case IsTypeTree(tt) => tt.pos})
           return !((tree.pos.exists && tree.pos.start == tree.pos.end && children == Nil) ||
             children.exists(arePositionEqual(tree.pos, _)))
@@ -179,37 +179,37 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
 
         def isTrait: Boolean = symbol.flags.is(Flags.Trait)
 
-        def isConstructor given (ctx: Context): Boolean =
+        def isConstructor(given ctx: Context): Boolean =
           symbol.name == "<init>"
 
-        def isVarAccessor given (ctx: Context): Boolean = {
+        def isVarAccessor(given ctx: Context): Boolean = {
           symbol.isVal && symbol.flags.is(Flags.Mutable)
         }
 
-        def isValMethod given (ctx: Context): Boolean = {
+        def isValMethod(given ctx: Context): Boolean = {
           symbol.isMethod && {
             (symbol.flags.is(Flags.FieldAccessor)  && symbol.flags.is(Flags.StableRealizable) ) ||
             (symbol.isUsefulField && !symbol.flags.is(Flags.Mutable) )
           }
         }
 
-        def isAnonymousClassConstructor given (ctx: Context): Boolean = {
+        def isAnonymousClassConstructor(given ctx: Context): Boolean = {
           symbol.isConstructor && symbol.owner.isAnonymousClass
         }
 
-        def isAnonymousSelfParameter given (ctx: Context): Boolean = {
+        def isAnonymousSelfParameter(given ctx: Context): Boolean = {
           symbol.isSelfParameter && {
             symbol.name == tpnme.this_.toString || // hardlinked in ClassSignature.self
             symbol.name.startsWith("x$") // wildcards can't be referenced: class A { _: B => }
           }
         }
 
-        def isWildCard given (ctx: Context): Boolean = {
+        def isWildCard(given ctx: Context): Boolean = {
           symbol.name.startsWith(tpnme.WILDCARD.toString) &&
           symbol.name != tpnme.THIS.toString
         }
 
-        def isAnonymousInit given (ctx: Context): Boolean = {
+        def isAnonymousInit(given ctx: Context): Boolean = {
           return symbol.exists && symbol.owner.exists &&
           (symbol.owner.isAnonymousFunction || symbol.owner.isAnonymousClass) &&
           symbol.name == "<init>"
@@ -222,10 +222,10 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
 
         def isJavaClass: Boolean = (symbol.isClass || symbol.isObject) && symbol.flags.is(Flags.JavaDefined)
 
-        def isSelfParameter given (ctx: Context): Boolean =
+        def isSelfParameter(given ctx: Context): Boolean =
           symbol.exists && symbol.owner == symbol
 
-        def isSemanticdbLocal given (ctx: Context): Boolean = {
+        def isSemanticdbLocal(given ctx: Context): Boolean = {
           def definitelyGlobal = symbol.isPackage
           def definitelyLocal =
             !symbol.exists ||
@@ -241,7 +241,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           !definitelyGlobal && (definitelyLocal || ownerLocal)
         }
 
-        def isSyntheticConstructor given (ctx: Context): Boolean = {
+        def isSyntheticConstructor(given ctx: Context): Boolean = {
           val isObjectConstructor = symbol.isConstructor && symbol.owner.exists && symbol.owner.flags.is(Flags.Object)
           val isModuleConstructor = symbol.isConstructor && symbol.owner.isClass
           val isTraitConstructor = symbol.isConstructor && symbol.owner.isTrait
@@ -253,10 +253,10 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           isTraitConstructor || isInterfaceConstructor || isObjectConstructor ||
           isEnumConstructor /*|| isStaticConstructor || isClassfileAnnotationConstructor*/
         }
-        def isLocalChild given (ctx: Context): Boolean =
+        def isLocalChild(given ctx: Context): Boolean =
           symbol.name == tpnme.LOCAL_CHILD.toString
 
-        def isSyntheticValueClassCompanion given (ctx: Context): Boolean = {
+        def isSyntheticValueClassCompanion(given ctx: Context): Boolean = {
           if (symbol.isClass) {
             if (symbol.flags.is(Flags.Object)) {
               symbol.asClassDef.moduleClass.fold(false)(c =>
@@ -275,50 +275,50 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           "private[this] val foo" are not converted to symbol occurences.
           In the original semanticdb this line is commented out.
         */
-        def isScalacField given (ctx: Context): Boolean = {
+        def isScalacField(given ctx: Context): Boolean = {
           //val isFieldForPrivateThis = symbol.flags.is(Flags.PrivateLocal)  && symbol.isTerm && !symbol.isMethod && !symbol.isObject
           val isFieldForOther = false //symbol.name.endsWith(g.nme.LOCAL_SUFFIX_STRING)
           val isJavaDefined = symbol.flags.is(Flags.JavaDefined)
           (/*isFieldForPrivateThis ||*/ isFieldForOther) && !isJavaDefined
         }
-        def isUselessField given (ctx: Context): Boolean = {
+        def isUselessField(given ctx: Context): Boolean = {
           symbol.isScalacField && symbol.owner.exists
         }
-        def isUsefulField given (ctx: Context): Boolean = {
+        def isUsefulField(given ctx: Context): Boolean = {
           symbol.isScalacField && !symbol.isUselessField
         }
-        def isSyntheticCaseAccessor given (ctx: Context): Boolean = {
+        def isSyntheticCaseAccessor(given ctx: Context): Boolean = {
           symbol.flags.is(Flags.CaseAcessor) && symbol.trueName.contains("$")
         }
-        def isSyntheticJavaModule given (ctx: Context): Boolean = {
+        def isSyntheticJavaModule(given ctx: Context): Boolean = {
           val resolved = symbol match {
           case IsClassDefSymbol(c) => resolveClass(c)
           case _ => symbol
           }
           !resolved.flags.is(Flags.Package)  && resolved.flags.is(Flags.JavaDefined)  && resolved.flags.is(Flags.Object)
         }
-        def isSyntheticAbstractType given (ctx: Context): Boolean = {
+        def isSyntheticAbstractType(given ctx: Context): Boolean = {
           symbol.flags.is(Flags.Synthetic)  && symbol.isAbstractType // these are hardlinked to TypeOps
         }
-        def isEtaExpandedParameter given (ctx: Context): Boolean = {
+        def isEtaExpandedParameter(given ctx: Context): Boolean = {
           // Term.Placeholder occurrences are not persisted so we don't persist their symbol information.
           // We might want to revisit this decision https://github.com/scalameta/scalameta/issues/1657
           symbol.isParameter &&
           symbol.name.startsWith("x$") &&
           symbol.owner.isAnonymousFunction
         }
-        def isStaticMember given (ctx: Context): Boolean =
+        def isStaticMember(given ctx: Context): Boolean =
           symbol.exists &&
             (symbol.flags.is(Flags.Static)  ||
               /*symbol.annots.find(_ == ctx.definitions.ScalaStaticAnnot)*/ false)
 
-        def isStaticConstructor given (ctx: Context): Boolean = {
+        def isStaticConstructor(given ctx: Context): Boolean = {
           (symbol.isStaticMember && symbol.isClassConstructor) || (symbol.name == tpnme.STATIC_CONSTRUCTOR.toString)
         }
 
         /* End of methods imported from the scala version of SemanticDB */
 
-        def isInitChild given (ctx: Context): Boolean = {
+        def isInitChild(given ctx: Context): Boolean = {
           if (symbol.exists && symbol.owner.exists) {
             return symbol.owner.name == "<init>" || symbol.owner.isInitChild
           } else {
@@ -326,7 +326,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           }
         }
 
-        def isUseless given (ctx: Context): Boolean = {
+        def isUseless(given ctx: Context): Boolean = {
           !symbol.exists ||
           symbol.isReservedName ||
           symbol.isAnonymousInit ||
@@ -343,8 +343,8 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           symbol.isRefinementClass ||
           symbol.isSyntheticJavaModule
         }
-        def isUseful given (ctx: Context): Boolean = !symbol.isUseless
-        def isUselessOccurrence given (ctx: Context): Boolean = {
+        def isUseful(given ctx: Context): Boolean = !symbol.isUseless
+        def isUselessOccurrence(given ctx: Context): Boolean = {
           symbol.isUseless &&
           !symbol.isSyntheticJavaModule // references to static Java inner classes should have occurrences
         }
@@ -696,7 +696,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         }
       }
 
-      override def traversePattern(tree: Pattern) given (ctx: Context): Unit = {
+      override def traversePattern(tree: Pattern)(given ctx: Context): Unit = {
         tree match {
           case Pattern.Bind(name, _) => {
             addOccurencePatternTree(
@@ -731,7 +731,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       var isAssignedTerm = false
 
       /* Create a mapping from parameter name to parameter position */
-      def generateParamsPosMapping(cdef: DefDef) given (ctx: Context): Map[String, s.Range] = {
+      def generateParamsPosMapping(cdef: DefDef)(given ctx: Context): Map[String, s.Range] = {
         val DefDef(_, _, params, _, _) = cdef
         val start = Map[String, s.Range]()
         params.foldLeft(start)((old, statements) => {
@@ -742,7 +742,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         )
       }
 
-      override def traverseTree(tree: Tree) given (ctx: Context): Unit = {
+      override def traverseTree(tree: Tree)(given ctx: Context): Unit = {
         tree match {
           case Import(path, selectors) =>
             val key = (tree.symbol.trueName, tree.pos.start)
@@ -1037,7 +1037,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       }
 
     }
-    Traverser.traverseTree(root) given reflect.rootContext
+    Traverser.traverseTree(root)(given reflect.rootContext)
   }
 
   def println(x: Any): Unit = Predef.println(x)
