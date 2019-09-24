@@ -244,8 +244,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         def isSyntheticValueClassCompanion(given ctx: Context): Boolean = {
           if (symbol.isClass) {
             if (symbol.flags.is(Flags.Object)) {
-              symbol.asClassDef.moduleClass.fold(false)(c =>
-                c.isSyntheticValueClassCompanion)
+              symbol.asClassDef.moduleClass.isSyntheticValueClassCompanion
             } else {
               symbol.flags.is(Flags.ModuleClass) &&
               symbol.flags.is(Flags.Synthetic) &&
@@ -332,11 +331,11 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         }
       }
 
-      def resolveClass(symbol: ClassDefSymbol): Symbol =
+      def resolveClass(symbol: Symbol): Symbol =
         (symbol.companionClass, symbol.companionModule) match {
-          case (Some(c), _)                               => c
-          case (_, Some(module)) if symbol.flags.is(Flags.Object) => module
-          case _                                          => symbol
+          case (c, _) if !c.isNoSymbol => c
+          case (_, module) if !module.isNoSymbol && symbol.flags.is(Flags.Object) => module
+          case _ => symbol
         }
 
       def disimbiguate(symbolPath: String, symbol: Symbol): String = {
