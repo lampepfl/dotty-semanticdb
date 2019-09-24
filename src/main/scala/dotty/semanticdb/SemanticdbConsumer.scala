@@ -107,7 +107,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       }
 
       implicit class SymbolExtender(symbol: Symbol) {
-        def exists = !(symbol.name == "<none>" || symbol == NoSymbol)
+        def exists = !(symbol.name == "<none>" || symbol.isNoSymbol)
         /* Return true if symbol represents the definition of a var setter, false otherwise.
         We return true if the extract of source code corresponding to the position of the symbol is the same as the symbol name.
         Ex:
@@ -133,34 +133,19 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         }
 
 
-        def isClass: Boolean = symbol match {
-          case IsClassDefSymbol(_) => true
-          case _                => false
-        }
+        def isClass: Boolean = symbol.isClass
 
         def isTypeParameter: Boolean = symbol.isParameter && symbol.isType
 
-        def isType: Boolean = symbol match {
-          case IsTypeDefSymbol(_) => true
-          case _               => false
-        }
+        def isType: Boolean = symbol.isTypeDef
 
         def isTerm: Boolean = !symbol.isType
 
-        def isMethod: Boolean = symbol match {
-          case IsDefDefSymbol(_) => true
-          case _              => false
-        }
+        def isMethod: Boolean = symbol.isDefDef
 
-        def isVal: Boolean = symbol match {
-          case IsValDefSymbol(_) => true
-          case _              => false
-        }
+        def isVal: Boolean = symbol.isValDef
 
-        def isPackage: Boolean = symbol match {
-          case IsPackageDefSymbol(_) => true
-          case _                  => false
-        }
+        def isPackage: Boolean = symbol.isPackageDef
 
         def isDefaultGetter: Boolean =
           symbol.name.contains(tpnme.DEFAULT_GETTER.toString)
@@ -291,10 +276,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           symbol.flags.is(Flags.CaseAcessor) && symbol.trueName.contains("$")
         }
         def isSyntheticJavaModule(given ctx: Context): Boolean = {
-          val resolved = symbol match {
-          case IsClassDefSymbol(c) => resolveClass(c)
-          case _ => symbol
-          }
+          val resolved = if symbol.isClassDef then resolveClass(symbol.asClassDef) else symbol
           !resolved.flags.is(Flags.Package)  && resolved.flags.is(Flags.JavaDefined)  && resolved.flags.is(Flags.Object)
         }
         def isSyntheticAbstractType(given ctx: Context): Boolean = {
@@ -360,27 +342,25 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       def disimbiguate(symbolPath: String, symbol: Symbol): String = {
         try {
           val symbolcl = resolveClass(symbol.owner.asClassDef)
-          symbolcl match {
-            case IsClassDefSymbol(classsymbol) => {
-              val methods = classsymbol.method(symbol.name)
-              val (methods_count, method_pos) =
-                methods.foldLeft((0, -1))((x: Tuple2[Int, Int], m: Symbol) => {
-                  if (m == symbol)
-                    (x._1 + 1, x._1)
-                  else
-                    (x._1 + 1, x._2)
-                })
-              val real_pos = methods_count - method_pos - 1
+          if (symbolcl.isClassDef) {
+            val classsymbol = symbolcl.asClassDef
+            val methods = classsymbol.method(symbol.name)
+            val (methods_count, method_pos) =
+              methods.foldLeft((0, -1))((x: Tuple2[Int, Int], m: Symbol) => {
+                if (m == symbol)
+                  (x._1 + 1, x._1)
+                else
+                  (x._1 + 1, x._2)
+              })
+            val real_pos = methods_count - method_pos - 1
 
-              if (real_pos == 0) {
-                "()"
-              } else {
-                "(+" + real_pos + ")"
-              }
-            }
-            case _ => {
+            if (real_pos == 0) {
               "()"
+            } else {
+              "(+" + real_pos + ")"
             }
+          } else {
+            "()"
           }
         } catch {
           case _ => "()"
@@ -391,10 +371,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         if (!symbol.exists || symbol.name == "<root>") then {
           ""
         } else {
-          val rsymbol = symbol match {
-            case IsClassDefSymbol(c) => resolveClass(c)
-            case _ => symbol
-          }
+          val rsymbol = if (symbol.isClassDef) resolveClass(symbol.asClassDef) else symbol
           val previous_symbol =
             /* When we consider snipper of the form: `abstract class DepAdvD[CC[X[C] <: B], X[Z], C] extends DepTemp`,
               The symbol for C will be something like example/DepAdvD#`<init>`().[CC].[X].[C].
@@ -406,7 +383,6 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
               iterateParent(rsymbol.owner)
 
 
-          val isdef = rsymbol match {case IsDefDefSymbol(_) => true case _ => false}
           val symbolName = if (isMutableAssignement) rsymbol.trueName + "_=" else rsymbol.trueName
           val next_atom =
             if (rsymbol.isPackage) {
