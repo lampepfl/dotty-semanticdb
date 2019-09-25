@@ -244,11 +244,11 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         def isSyntheticValueClassCompanion(given ctx: Context): Boolean = {
           if (symbol.isClass) {
             if (symbol.flags.is(Flags.Object)) {
-              symbol.asClassDef.moduleClass.isSyntheticValueClassCompanion
+              symbol.moduleClass.isSyntheticValueClassCompanion
             } else {
               symbol.flags.is(Flags.ModuleClass) &&
               symbol.flags.is(Flags.Synthetic) &&
-              symbol.asClassDef.methods.isEmpty
+              symbol.methods.isEmpty
             }
           } else {
             false
@@ -275,7 +275,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           symbol.flags.is(Flags.CaseAcessor) && symbol.trueName.contains("$")
         }
         def isSyntheticJavaModule(given ctx: Context): Boolean = {
-          val resolved = if symbol.isClassDef then resolveClass(symbol.asClassDef) else symbol
+          val resolved = if symbol.isClassDef then resolveClass(symbol) else symbol
           !resolved.flags.is(Flags.Package)  && resolved.flags.is(Flags.JavaDefined)  && resolved.flags.is(Flags.Object)
         }
         def isSyntheticAbstractType(given ctx: Context): Boolean = {
@@ -340,10 +340,9 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
 
       def disimbiguate(symbolPath: String, symbol: Symbol): String = {
         try {
-          val symbolcl = resolveClass(symbol.owner.asClassDef)
+          val symbolcl = resolveClass(symbol.owner)
           if (symbolcl.isClassDef) {
-            val classsymbol = symbolcl.asClassDef
-            val methods = classsymbol.method(symbol.name)
+            val methods = symbolcl.method(symbol.name)
             val (methods_count, method_pos) =
               methods.foldLeft((0, -1))((x: Tuple2[Int, Int], m: Symbol) => {
                 if (m == symbol)
@@ -370,7 +369,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         if (!symbol.exists || symbol.name == "<root>") then {
           ""
         } else {
-          val rsymbol = if (symbol.isClassDef) resolveClass(symbol.asClassDef) else symbol
+          val rsymbol = if (symbol.isClassDef) resolveClass(symbol) else symbol
           val previous_symbol =
             /* When we consider snipper of the form: `abstract class DepAdvD[CC[X[C] <: B], X[Z], C] extends DepTemp`,
               The symbol for C will be something like example/DepAdvD#`<init>`().[CC].[X].[C].
