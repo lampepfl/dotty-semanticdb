@@ -48,8 +48,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           traverseTypeTree(tree)
         case _ => children = tree :: children
       }
-      override def traversePattern(pattern: Pattern)(
-          implicit ctx: Context): Unit = ()
+
       def traverseTypeTree(tree: Tree /*TypeTree | TypeBoundsTree*/)(
           implicit ctx: Context): Unit =
           childrenType = tree :: childrenType
@@ -97,12 +96,6 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
       implicit class TypeOrBoundsTreeExtender(tree: Tree /*TypeTree | TypeBoundsTree*/) {
         def typetree: TypeTree = tree match {
           case IsTypeTree(t) => t
-        }
-      }
-
-      implicit class PatternExtender(tree: Pattern) {
-        def isUserCreated: Boolean = {
-          return !(tree.pos.exists && tree.pos.start == tree.pos.end)
         }
       }
 
@@ -499,7 +492,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
         }
       }
 
-      def addOccurencePatternTree(tree: Pattern,
+      def addOccurencePatternTree(tree: Tree,
                                   typeSymbol: s.SymbolOccurrence.Role,
                                   range: s.Range): Unit = {
         if (!tree.symbol.isUselessOccurrence && tree.isUserCreated) {
@@ -669,22 +662,6 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
           }
         }
       }
-
-      override def traversePattern(tree: Pattern)(given ctx: Context): Unit = {
-        tree match {
-          case Pattern.Bind(name, _) => {
-            addOccurencePatternTree(
-              tree,
-              s.SymbolOccurrence.Role.REFERENCE,
-              createRange(tree.symbol.pos.startLine, tree.symbol.pos.startColumn, name.length)
-            )
-            super.traversePattern(tree)
-          }
-          case _ =>
-            super.traversePattern(tree)
-        }
-      }
-
 
       /* Finding the range of init symbols is not intuitive. We can determine it on a classdef.
       [fittedInitClassRange] is used to transmit this information to the corresponding <init> symbol */
@@ -1003,6 +980,14 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
                                createRange(tree.pos.startLine, tree.pos.startColumn + "package ".length, tree.symbol.trueName.length))
               packageDefinitions += key
             }
+            super.traverseTree(tree)
+
+          case Bind(name, _) =>
+            addOccurencePatternTree(
+              tree,
+              s.SymbolOccurrence.Role.REFERENCE,
+              createRange(tree.symbol.pos.startLine, tree.symbol.pos.startColumn, name.length)
+            )
             super.traverseTree(tree)
 
           case tree =>
