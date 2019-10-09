@@ -33,7 +33,7 @@ class SemanticdbConsumer(sourceFilePath: java.nio.file.Path) extends TastyConsum
   val sourceCode = new SourceFile(sourceFilePath)
 
   final def apply(reflect: Reflection)(root: reflect.Tree): Unit = {
-    import reflect._
+    import reflect.{_, given}
 
     // To avoid adding symbol paths duplicates inside a same class
     val symbolPathsMap: Set[(String, s.Range)] = Set()

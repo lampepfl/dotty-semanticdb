@@ -14,7 +14,7 @@ class TastyScalaFileInferrer extends TastyConsumer {
   Otherwise None */
   var sourcePath: Option[String] = None
   final def apply(reflect: Reflection)(root: reflect.Tree): Unit = {
-    import reflect._
+    import reflect.{_, given}
     object ChildTraverser extends TreeTraverser {
       override def traverseTree(tree: Tree)(given ctx: Context): Unit =
         tree match {
