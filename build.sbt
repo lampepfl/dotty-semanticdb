@@ -11,7 +11,7 @@ lazy val root = project
 
     unmanagedSourceDirectories in Test += baseDirectory.value / "input" / "src" / "main" / "scala",
     scalacOptions in Compile ++= Seq("-noindent"),
-    scalacOptions in Test ++= Seq("-noindent", "-Yno-inline"),
+    scalacOptions in Test ++= Seq("-noindent"),
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % "test",
       "org.scalameta" %% "semanticdb-scalac-core" % "4.2.1" cross CrossVersion.constant("2.13.0"),
