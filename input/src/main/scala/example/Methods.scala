@@ -18,9 +18,8 @@ class Methods[T] {
   def m7a[U: Ordering](c: Methods[T], l: List[U]) = ???
   def m7b[U <: T](l: List[U]) = ???
   def `m8().`() = ???
-  // Disabled until https://github.com/lampepfl/dotty/issues/5936 is fixed
-  // class `m9().`
-  // def m9(x: `m9().`) = ???
+  class `m9().`
+  def m9(x: `m9().`) = ???
   def m10(x: AList[T]) = ???
   def m11(x: Predef.type) = ???
   def m11(x: OExample.type) = ???

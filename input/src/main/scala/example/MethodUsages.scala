@@ -14,8 +14,7 @@ class MethodUsages {
   m.m7a(m, new m.List[Int])
   m.m7b(new m.List[Int])
   m.`m8().`()
-  // See comment in Methods.scala
-  // m.m9(null)
+  m.m9(null)
   m.m10(null)
   m.m11(Predef)
   m.m11(OExample)
