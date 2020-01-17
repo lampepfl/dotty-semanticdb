@@ -13,7 +13,7 @@ lazy val root = project
     scalacOptions in Compile ++= Seq("-noindent"),
     scalacOptions in Test ++= Seq("-noindent"),
     libraryDependencies ++= Seq(
-      scalaOrganization.value %% "dotty-compiler" % scalaVersion.value,
+      scalaOrganization.value %% "dotty-tasty-consumer" % scalaVersion.value,
       "com.novocode" % "junit-interface" % "0.11" % "test",
       "org.scalameta" %% "semanticdb-scalac-core" % "4.2.1" cross CrossVersion.constant("2.13.0"),
       "com.novocode" % "junit-interface" % "0.11",
